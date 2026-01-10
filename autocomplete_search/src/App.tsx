@@ -1,65 +1,78 @@
-import './App.css'
 import { useState, useEffect } from 'react';
+import { Search } from 'lucide-react';
+import './App.css'
 
-interface Recipes{
-  id: number
-  name: string
-  image: string
-  ingredients: []
+
+interface Products{
+  id: number;
+  title: string;
+  description: string;
 }
 
-export default function App() {
-  const [enteredVal, setEnteredVal] = useState<string>('');
-  const [fetchedData, setFetchedData] = useState<Recipes[]>();
-  const [showResults, setShowResults] = useState<boolean>(false)
+interface Cache{
+  [key: string]: Products[];
+}
 
 
-  const fetchData = async () =>{
-    try{
-      const response =  await fetch(`https://dummyjson.com/recipes/search?q=${enteredVal}`);
-      const data = await response.json();
-      setFetchedData(data?.recipes)
-      // console.log(data)
-    }
-    catch(e){
-      console.log(e)
-    }
-    
-  }
+
+export default function App(){
+  const [inputVal, setInputVal] = useState<string>('');
+  const [fetchedData, setFetchedData] = useState<Products[]>();
+  const [showResults, setShowResults] = useState<boolean>(false);
+  const [ cache, setCache ] = useState<Cache>({});
+  
 
   useEffect(()=>{
-    if (enteredVal.trim().length < 2) return;
-    
-    const timeout = setTimeout(()=>{fetchData()}, 500);
+    if (inputVal.trim().length < 2) return;
 
-    return ()=>clearTimeout(timeout);
-  }, [enteredVal])
-  
-  console.log(fetchedData)
+    const fetchData = async () =>{
+    try{
+      if (inputVal in cache){
+        setFetchedData(cache[inputVal]);
+        return;
+      }
+      const response = await fetch(`https://dummyjson.com/products/search?q=${inputVal}`);
+      const data = await response.json();
+      setFetchedData(data.products)
+      setCache((prev)=>({
+        ...prev,
+        [inputVal] : data
+    }))
 
-  return (
-    <>
-      <h1>Autocomplete Search bar</h1>
-      <div>
-        {/* <button>Search</button> */}
-        <input 
-          value={enteredVal}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>)=>setEnteredVal(e.target.value)}
-          onFocus={()=>setShowResults(true)}
-          onBlur={()=>setShowResults(false)}
-        />
+    } 
+    catch(e){
+      console.error(e)
+    }   
+  }
 
-       {
-        showResults && (
-          <div className="dishes">
-          {fetchedData?.map((item: Recipes)=><p key={item.id}>
-            {item.name}</p>
-        )}
+  const timer =  setTimeout(()=>fetchData(), 400);
+  return ()=>clearTimeout(timer);
+   
+  }, [inputVal])
+
+  return(
+    <div className='app'>
+      <h2>Autocomplete Search bar</h2>
+      <div className="main-search">
+        <div className='input-div'>
+          <Search />
+          <input 
+            value={inputVal} 
+            onChange={(e: React.ChangeEvent<HTMLInputElement>)=>setInputVal(e.target.value)} 
+            onFocus={()=>setShowResults(true)}
+            onBlur={()=>setShowResults(false)}
+          />
         </div>
-        )
-       }
+        {
+          showResults && <div className='products'>
+          {
+            fetchedData?.map((product: Products)=>(
+              <p>{product.title}</p>
+            ))
+          }
+        </div>
+        }
       </div>
-    </>
+    </div>
   )
 }
-

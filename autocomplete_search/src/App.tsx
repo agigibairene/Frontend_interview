@@ -17,7 +17,7 @@ interface Cache{
 
 export default function App(){
   const [inputVal, setInputVal] = useState<string>('');
-  const [fetchedData, setFetchedData] = useState<Products[]>();
+  const [fetchedData, setFetchedData] = useState<Products[]>([]);
   const [showResults, setShowResults] = useState<boolean>(false);
   const [ cache, setCache ] = useState<Cache>({});
   
@@ -27,7 +27,7 @@ export default function App(){
 
     const fetchData = async () =>{
     try{
-      if (inputVal in cache){
+      if (cache[inputVal]){
         setFetchedData(cache[inputVal]);
         return;
       }
@@ -36,7 +36,7 @@ export default function App(){
       setFetchedData(data.products)
       setCache((prev)=>({
         ...prev,
-        [inputVal] : data
+        [inputVal] : data.products
     }))
 
     } 
@@ -66,8 +66,8 @@ export default function App(){
         {
           showResults && <div className='products'>
           {
-            fetchedData?.map((product: Products)=>(
-              <p>{product.title}</p>
+            fetchedData.length > 0 && fetchedData?.map((product: Products)=>(
+              <p key={product.id}>{product.title}</p>
             ))
           }
         </div>

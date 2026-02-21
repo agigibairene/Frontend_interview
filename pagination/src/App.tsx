@@ -1,57 +1,60 @@
-/* eslint-disable react-hooks/set-state-in-effect */
-import { useEffect, useState } from 'react';
+import { useQuery , keepPreviousData} from "@tanstack/react-query"
+import { useState } from "react"
 
 interface Product{
   id: number
   title: string
   description: string
   category: string
-  images: string[]
+  thumbnail: string
+}
+
+interface Products{
+  products: Product[],
+  limit: number
+  total: number
 }
 
 export default function App(){
-  const [ products, setProducts ] = useState<Product[]>();
+  const [currentPage, setCurrentPage] = useState<number>(0);
 
-  const fetchedData = async () =>{
-    try{
-      const response = await fetch('https://dummyjson.com/products');
-      const data = await response.json();
+  let productsPerPage = 30;
 
-      setProducts(data.products)
-    }
-    catch(e){
-      console.error(e)
-    }
-  }
+  
+  const { data: products} = useQuery<Products>({
+    queryKey: [ 'products', {currentPage}],
+    queryFn: async () : Promise<Products> =>{
+      const response = await fetch(`https://dummyjson.com/products?skip=${currentPage * productsPerPage}`);
+      let data: Products = await response.json()
+      return data;
+    },
+    placeholderData: keepPreviousData,
+    staleTime: 1000
+  });
 
-  useEffect(()=>{
-    fetchedData()
-  }, []);
+  let total = products?.total ?? 0;
+  let numberOfPages = Math.ceil(total/productsPerPage);
 
-  console.log(products)
 
   return(
     <div>
-      <h1>Pagination</h1>
-
-      <div className='main'>
-        <div  className='products'>
-          { products && products.map((item: Product)=>{
-            const {id, title, images} = item;
-            return(
-              <div className='product' key={id}>
-                <img src={images[0]} alt={title} />
-                <p>{title}</p>
+      <main>
+        <h1>Pagination</h1>
+        <div className="products">
+          {
+            products?.products.map((item: Product)=>
+              <div className="product" key={item.id}>
+                <img src={item.thumbnail} alt="" />
+                <p>{item.title}</p>
               </div>
             )
-          })}
+          }
         </div>
-
-        <div className='btns'>
-          <button>Next</button>
-          <button>Previous</button>
+        <div className="btns">
+          <button disabled={currentPage === numberOfPages - 1} onClick={()=>setCurrentPage(prev=>prev+1)}>Next</button>
+          <button disabled={currentPage <=0} onClick={()=>setCurrentPage(prev=>prev-1)}>Previous</button>
         </div>
-      </div>
+      </main>
     </div>
   )
 }
